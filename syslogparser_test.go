@@ -1,7 +1,7 @@
 package syslogparser
 
 import (
-  . "github.com/go-check/check"
+  . "github.com/scalingdata/check"
   "testing"
 )
 

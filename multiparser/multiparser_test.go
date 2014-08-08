@@ -1,7 +1,7 @@
 package multiparser
 
 import (
-  . "github.com/go-check/check"
+  . "github.com/scalingdata/check"
   "strings"
   syslogmsg "github.com/jeromer/syslogparser/message"
   "testing"

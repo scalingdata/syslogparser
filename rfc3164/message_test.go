@@ -1,7 +1,7 @@
 package rfc3164
 
 import (
-  . "github.com/go-check/check"
+  . "github.com/scalingdata/check"
   "time"
   "testing"
   message "github.com/jeromer/syslogparser/message"

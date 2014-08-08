@@ -3,8 +3,8 @@ package rfc3164
 import (
   "bytes"
   "github.com/jeromer/syslogparser"
-  . "github.com/go-check/check"
   "strings"
+  . "github.com/scalingdata/check"
   "testing"
   "time"
 )
