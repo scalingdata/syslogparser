@@ -1,7 +1,7 @@
 package rfc5424
 
 import (
-	. "github.com/go-check/check"
+  . "github.com/go-check/check"
   "time"
   "testing"
   message "github.com/jeromer/syslogparser/message"

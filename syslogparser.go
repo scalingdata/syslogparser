@@ -1,206 +1,206 @@
 package syslogparser
 
 import (
-	"fmt"
-	message "github.com/jeromer/syslogparser/message"
-	"strconv"
-	"strings"
+  "fmt"
+  message "github.com/jeromer/syslogparser/message"
+  "strconv"
+  "strings"
 )
 
 const (
-	PRI_PART_START = '<'
-	PRI_PART_END   = '>'
+  PRI_PART_START = '<'
+  PRI_PART_END   = '>'
 
-	NO_VERSION = -1
+  NO_VERSION = -1
 )
 
 var (
-	ErrEOL     = &ParserError{"End of log line"}
-	ErrNoSpace = &ParserError{"No space found"}
+  ErrEOL     = &ParserError{"End of log line"}
+  ErrNoSpace = &ParserError{"No space found"}
 
-	ErrPriorityNoStart  = &ParserError{"No start char found for priority"}
-	ErrPriorityEmpty    = &ParserError{"Priority field empty"}
-	ErrPriorityNoEnd    = &ParserError{"No end char found for priority"}
-	ErrPriorityTooShort = &ParserError{"Priority field too short"}
-	ErrPriorityTooLong  = &ParserError{"Priority field too long"}
-	ErrPriorityNonDigit = &ParserError{"Non digit found in priority"}
+  ErrPriorityNoStart  = &ParserError{"No start char found for priority"}
+  ErrPriorityEmpty    = &ParserError{"Priority field empty"}
+  ErrPriorityNoEnd    = &ParserError{"No end char found for priority"}
+  ErrPriorityTooShort = &ParserError{"Priority field too short"}
+  ErrPriorityTooLong  = &ParserError{"Priority field too long"}
+  ErrPriorityNonDigit = &ParserError{"Non digit found in priority"}
 
-	ErrVersionNotFound = &ParserError{"Can not find version"}
+  ErrVersionNotFound = &ParserError{"Can not find version"}
 
-	ErrTimestampUnknownFormat = &ParserError{"Timestamp format unknown"}
+  ErrTimestampUnknownFormat = &ParserError{"Timestamp format unknown"}
 )
 
 type LogParser interface {
-	Parse() error
-	Dump() LogParts
-	Message() message.IMessage
+  Parse() error
+  Dump() LogParts
+  Message() message.IMessage
 }
 
 type ParserError struct {
-	ErrorString string
+  ErrorString string
 }
 
 type Priority struct {
-	P int
-	F Facility
-	S Severity
+  P int
+  F Facility
+  S Severity
 }
 
 type Facility struct {
-	Value int
+  Value int
 }
 
 type Severity struct {
-	Value int
+  Value int
 }
 
 type LogParts map[string]interface{}
 
 // https://tools.ietf.org/html/rfc3164#section-4.1
 func ParsePriority(buff []byte, cursor *int, l int) (Priority, error) {
-	pri := newPriority(0)
+  pri := newPriority(0)
 
-	if l <= 0 {
-		return pri, ErrPriorityEmpty
-	}
+  if l <= 0 {
+    return pri, ErrPriorityEmpty
+  }
 
-	if buff[*cursor] != PRI_PART_START {
-		return pri, ErrPriorityNoStart
-	}
+  if buff[*cursor] != PRI_PART_START {
+    return pri, ErrPriorityNoStart
+  }
 
-	i := 1
-	priDigit := 0
+  i := 1
+  priDigit := 0
 
-	for i < l {
-		if i >= 5 {
-			return pri, ErrPriorityTooLong
-		}
+  for i < l {
+    if i >= 5 {
+      return pri, ErrPriorityTooLong
+    }
 
-		c := buff[i]
+    c := buff[i]
 
-		if c == PRI_PART_END {
-			if i == 1 {
-				return pri, ErrPriorityTooShort
-			}
+    if c == PRI_PART_END {
+      if i == 1 {
+        return pri, ErrPriorityTooShort
+      }
 
-			*cursor = i + 1
-			return newPriority(priDigit), nil
-		}
+      *cursor = i + 1
+      return newPriority(priDigit), nil
+    }
 
-		if IsDigit(c) {
-			v, e := strconv.Atoi(string(c))
-			if e != nil {
-				return pri, e
-			}
+    if IsDigit(c) {
+      v, e := strconv.Atoi(string(c))
+      if e != nil {
+        return pri, e
+      }
 
-			priDigit = (priDigit * 10) + v
-		} else {
-			return pri, ErrPriorityNonDigit
-		}
+      priDigit = (priDigit * 10) + v
+    } else {
+      return pri, ErrPriorityNonDigit
+    }
 
-		i++
-	}
+    i++
+  }
 
-	return pri, ErrPriorityNoEnd
+  return pri, ErrPriorityNoEnd
 }
 
 // https://tools.ietf.org/html/rfc5424#section-6.2.2
 func ParseVersion(buff []byte, cursor *int, l int) (int, error) {
-	if *cursor >= l {
-		return NO_VERSION, ErrVersionNotFound
-	}
+  if *cursor >= l {
+    return NO_VERSION, ErrVersionNotFound
+  }
 
-	c := buff[*cursor]
-	*cursor++
+  c := buff[*cursor]
+  *cursor++
 
-	// XXX : not a version, not an error though as RFC 3164 does not support it
-	if !IsDigit(c) {
-		return NO_VERSION, nil
-	}
+  // XXX : not a version, not an error though as RFC 3164 does not support it
+  if !IsDigit(c) {
+    return NO_VERSION, nil
+  }
 
-	v, e := strconv.Atoi(string(c))
-	if e != nil {
-		*cursor--
-		return NO_VERSION, e
-	}
+  v, e := strconv.Atoi(string(c))
+  if e != nil {
+    *cursor--
+    return NO_VERSION, e
+  }
 
-	return v, nil
+  return v, nil
 }
 
 func IsDigit(c byte) bool {
-	return c >= '0' && c <= '9'
+  return c >= '0' && c <= '9'
 }
 
 func newPriority(p int) Priority {
-	// The Priority value is calculated by first multiplying the Facility
-	// number by 8 and then adding the numerical value of the Severity.
+  // The Priority value is calculated by first multiplying the Facility
+  // number by 8 and then adding the numerical value of the Severity.
 
-	return Priority{
-		P: p,
-		F: Facility{Value: p / 8},
-		S: Severity{Value: p % 8},
-	}
+  return Priority{
+    P: p,
+    F: Facility{Value: p / 8},
+    S: Severity{Value: p % 8},
+  }
 }
 
 func FindNextSpace(buff []byte, from int, l int) (int, error) {
-	var to int
+  var to int
 
-	for to = from; to < l; to++ {
-		if buff[to] == ' ' {
-			to++
-			return to, nil
-		}
-	}
+  for to = from; to < l; to++ {
+    if buff[to] == ' ' {
+      to++
+      return to, nil
+    }
+  }
 
-	return 0, ErrNoSpace
+  return 0, ErrNoSpace
 }
 
 func Parse2Digits(buff []byte, cursor *int, l int, min int, max int, e error) (int, error) {
-	digitLen := 2
+  digitLen := 2
 
-	if *cursor+digitLen > l {
-		return 0, ErrEOL
-	}
+  if *cursor+digitLen > l {
+    return 0, ErrEOL
+  }
 
-	sub := string(buff[*cursor : *cursor+digitLen])
+  sub := string(buff[*cursor : *cursor+digitLen])
 
-	*cursor += digitLen
+  *cursor += digitLen
 
-	i, err := strconv.Atoi(sub)
-	if err != nil {
-		return 0, e
-	}
+  i, err := strconv.Atoi(sub)
+  if err != nil {
+    return 0, e
+  }
 
-	if i >= min && i <= max {
-		return i, nil
-	}
+  if i >= min && i <= max {
+    return i, nil
+  }
 
-	return 0, e
+  return 0, e
 }
 
 func ParseHostname(buff []byte, cursor *int, l int) (string, error) {
-	from := *cursor
-	var to int
+  from := *cursor
+  var to int
 
-	for to = from; to < l; to++ {
-		if buff[to] == ' ' {
-			break
-		}
-	}
+  for to = from; to < l; to++ {
+    if buff[to] == ' ' {
+      break
+    }
+  }
 
-	hostname := buff[from:to]
+  hostname := buff[from:to]
 
-	*cursor = to
+  *cursor = to
 
-	return string(hostname), nil
+  return string(hostname), nil
 }
 
 func ShowCursorPos(buff []byte, cursor int) {
-	fmt.Println(string(buff))
-	padding := strings.Repeat("-", cursor)
-	fmt.Println(padding + "↑\n")
+  fmt.Println(string(buff))
+  padding := strings.Repeat("-", cursor)
+  fmt.Println(padding + "↑\n")
 }
 
 func (err *ParserError) Error() string {
-	return err.ErrorString
+  return err.ErrorString
 }

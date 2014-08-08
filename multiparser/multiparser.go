@@ -12,7 +12,7 @@ import (
 )
 
 type MultiParserError struct {
-	ErrorString string
+  ErrorString string
   ParseErrors []error
 }
 func (self MultiParserError) Error() string {
