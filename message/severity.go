@@ -1,5 +1,9 @@
 package message
 
+import (
+  "strconv"
+)
+
 type Severity int
 
 const (
@@ -14,19 +18,5 @@ const (
   Debug Severity = 7
 )
 func (self Severity) String() string {
-  return severityNames[int(self)]
-}
-
-/* SD-247: reach a consensus on textual representation for each message type 
-   (these are copy/pasted from the rfc. */
-var severityNames = map[int]string{
-  -1: "Unknown",
-  0: "Emergency",
-  1: "Alert",
-  2: "Critical",
-  3: "Error",
-  4: "Warning",
-  5: "Notice",
-  6: "Info",
-  7: "Debug",
+  return strconv.Itoa(int(self))
 }
