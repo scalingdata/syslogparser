@@ -2,8 +2,8 @@ package rfc3164
 
 import (
 	"bytes"
-	"github.com/scalingdata/syslogparser"
-	. "launchpad.net/gocheck"
+	"github.com/jeromer/syslogparser"
+	. "github.com/go-check/check"
 	"testing"
 	"time"
 )

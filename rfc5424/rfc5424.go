@@ -5,7 +5,8 @@ package rfc5424
 
 import (
 	"fmt"
-	"github.com/scalingdata/syslogparser"
+	"github.com/jeromer/syslogparser"
+	message "github.com/jeromer/syslogparser/message"
 	"math"
 	"strconv"
 	"time"
@@ -38,6 +39,7 @@ type Parser struct {
 	header         header
 	structuredData string
 	message        string
+  parseSuccessful bool
 }
 
 type header struct {
@@ -73,6 +75,7 @@ func NewParser(buff []byte) *Parser {
 		buff:   buff,
 		cursor: 0,
 		l:      len(buff),
+    parseSuccessful: false,
 	}
 }
 
@@ -96,6 +99,7 @@ func (p *Parser) Parse() error {
 		p.message = string(p.buff[p.cursor:])
 	}
 
+  p.parseSuccessful = true
 	return nil
 }
 
@@ -113,6 +117,26 @@ func (p *Parser) Dump() syslogparser.LogParts {
 		"structured_data": p.structuredData,
 		"message":         p.message,
 	}
+}
+
+func (p *Parser) Message() message.IMessage {
+  if ! p.parseSuccessful {
+    return message.NewUnparsableMessage(p.buff)
+  } else {
+    return &Rfc5424Message{
+      rawMsg: p.buff,
+      ts: p.header.timestamp,
+      pid: p.header.procId,
+      facility: message.Facility(p.header.priority.F.Value),
+      severity: message.Severity(p.header.priority.S.Value),
+      hostname: p.header.hostname,
+      message: p.message,
+      appName: p.header.appName,
+      version: p.header.version,
+      msgId: p.header.msgId,
+      structuredData: p.structuredData,
+    }
+  }
 }
 
 // HEADER = PRI VERSION SP TIMESTAMP SP HOSTNAME SP APP-NAME SP PROCID SP MSGID

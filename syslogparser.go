@@ -2,6 +2,7 @@ package syslogparser
 
 import (
 	"fmt"
+	message "github.com/jeromer/syslogparser/message"
 	"strconv"
 	"strings"
 )
@@ -32,6 +33,7 @@ var (
 type LogParser interface {
 	Parse() error
 	Dump() LogParts
+	Message() message.IMessage
 }
 
 type ParserError struct {
