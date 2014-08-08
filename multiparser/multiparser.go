@@ -2,7 +2,7 @@ package multiparser
 
 import (
   "fmt"
-  log "code.google.com/p/log4go"
+  log "github.com/scalingdata/log4go"
   "github.com/jeromer/syslogparser"
   message "github.com/jeromer/syslogparser/message"
   "reflect"
