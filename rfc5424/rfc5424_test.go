@@ -2,8 +2,8 @@ package rfc5424
 
 import (
 	"fmt"
-	"github.com/scalingdata/syslogparser"
-	. "launchpad.net/gocheck"
+	"github.com/jeromer/syslogparser"
+	. "github.com/go-check/check"
 	"testing"
 	"time"
 )

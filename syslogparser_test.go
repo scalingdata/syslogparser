@@ -1,7 +1,7 @@
 package syslogparser
 
 import (
-	. "launchpad.net/gocheck"
+	. "github.com/go-check/check"
 	"testing"
 )
 

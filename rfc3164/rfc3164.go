@@ -2,7 +2,8 @@ package rfc3164
 
 import (
 	"bytes"
-	"github.com/scalingdata/syslogparser"
+	"github.com/jeromer/syslogparser"
+	message "github.com/jeromer/syslogparser/message"
 	"time"
 )
 
@@ -14,6 +15,7 @@ type Parser struct {
 	version  int
 	header   header
 	message  rfc3164message
+	parseSuccessful bool
 }
 
 type header struct {
@@ -31,6 +33,7 @@ func NewParser(buff []byte) *Parser {
 		buff:   buff,
 		cursor: 0,
 		l:      len(buff),
+		parseSuccessful: false,
 	}
 }
 
@@ -57,6 +60,7 @@ func (p *Parser) Parse() error {
 	p.header = hdr
 	p.message = msg
 
+  p.parseSuccessful = true
 	return nil
 }
 
@@ -70,6 +74,24 @@ func (p *Parser) Dump() syslogparser.LogParts {
 		"facility":  p.priority.F.Value,
 		"severity":  p.priority.S.Value,
 	}
+}
+
+func (p *Parser) Message() message.IMessage {
+  if ! p.parseSuccessful {
+    return message.NewUnparsableMessage(p.buff)
+  } else {
+    return &Rfc3164Message{
+      rawMsg: p.buff,
+      ts: p.header.timestamp,
+      // SD-187: rfc3164 parser doesn't extract the pid
+      pid: "",
+      facility: message.Facility(p.priority.F.Value),
+      severity: message.Severity(p.priority.S.Value),
+      process: p.message.tag,
+      hostname: p.header.hostname,
+      message: p.message.content,
+    }
+  }
 }
 
 func (p *Parser) parsePriority() (syslogparser.Priority, error) {

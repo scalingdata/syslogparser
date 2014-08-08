@@ -2,7 +2,7 @@ package rfc3164_test
 
 import (
 	"fmt"
-	"github.com/scalingdata/syslogparser/rfc3164"
+	"github.com/jeromer/syslogparser/rfc3164"
 )
 
 func ExampleNewParser() {
