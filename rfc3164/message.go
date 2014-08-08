@@ -6,7 +6,7 @@ import (
 )
 
 type Rfc3164Message struct {
-  rawMsg []byte
+  rawMsg *[]byte
   ts time.Time
   pid string
   facility message.Facility
@@ -16,7 +16,7 @@ type Rfc3164Message struct {
   message string
 }
 
-func (self Rfc3164Message) RawMessage() []byte { 
+func (self Rfc3164Message) RawMessage() *[]byte { 
   return self.rawMsg 
 }
 

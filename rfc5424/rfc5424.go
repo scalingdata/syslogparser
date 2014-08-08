@@ -70,11 +70,11 @@ type fullDate struct {
   day   int
 }
 
-func NewParser(buff []byte) *Parser {
+func NewParser(buff *[]byte) *Parser {
   return &Parser{
-    buff:   buff,
+    buff:   *buff,
     cursor: 0,
-    l:      len(buff),
+    l:      len(*buff),
     parseSuccessful: false,
   }
 }
@@ -121,10 +121,10 @@ func (p *Parser) Dump() syslogparser.LogParts {
 
 func (p *Parser) Message() message.IMessage {
   if ! p.parseSuccessful {
-    return message.NewUnparsableMessage(p.buff)
+    return message.NewUnparsableMessage(&p.buff)
   } else {
     return &Rfc5424Message{
-      rawMsg: p.buff,
+      rawMsg: &p.buff,
       ts: p.header.timestamp,
       pid: p.header.procId,
       facility: message.Facility(p.header.priority.F.Value),

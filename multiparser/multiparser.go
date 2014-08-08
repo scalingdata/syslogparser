@@ -24,10 +24,8 @@ func (self MultiParserError) Error() string {
 }
 
 type Parser struct {
-  rawMsg []byte
+  rawMsg *[]byte
   parsers []syslogparser.LogParser
-  // rfc3164Parser *rfc3164.Parser
-  // rfc5424Parser *rfc5424.Parser
   successfulParser syslogparser.LogParser
   failureMsg message.IMessage
 }
@@ -69,7 +67,7 @@ func (self *Parser) Message() message.IMessage {
 }
 
 /* Create a Parser that uses all known RFC defined formats */
-func NewRfcParser(rawMsg []byte) syslogparser.LogParser {
+func NewRfcParser(rawMsg *[]byte) syslogparser.LogParser {
   parserSet := []syslogparser.LogParser{rfc3164.NewParser(rawMsg), rfc5424.NewParser(rawMsg)}
   return &Parser{
     rawMsg: rawMsg,

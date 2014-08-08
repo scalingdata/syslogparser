@@ -89,13 +89,14 @@ func (s *Rfc5424TestSuite) TestParser_Valid(c *C) {
   c.Assert(len(fixtures), Equals, len(expected))
   start := 0
   for i, buff := range fixtures {
+    asBytes := []byte(buff)
     expectedP := &Parser{
-      buff:   []byte(buff),
+      buff:   asBytes,
       cursor: start,
       l:      len(buff),
     }
 
-    p := NewParser([]byte(buff))
+    p := NewParser(&asBytes)
     c.Assert(p, DeepEquals, expectedP)
 
     err := p.Parse()
@@ -203,7 +204,8 @@ func (s *Rfc5424TestSuite) TestParseHeader_Valid(c *C) {
   }
 
   for i, f := range fixtures {
-    p := NewParser([]byte(f))
+    asBytes := []byte(f)
+    p := NewParser(&asBytes)
     obtained, err := p.parseHeader()
     c.Assert(err, IsNil)
     c.Assert(obtained, Equals, expected[i])
@@ -710,7 +712,7 @@ func (s *Rfc5424TestSuite) TestParseStructuredData_MultipleStructuredDataInvalid
 func (s *Rfc5424TestSuite) BenchmarkParseTimestamp(c *C) {
   buff := []byte("2003-08-24T05:14:15.000003-07:00")
 
-  p := NewParser(buff)
+  p := NewParser(&buff)
 
   for i := 0; i < c.N; i++ {
     _, err := p.parseTimestamp()
@@ -725,7 +727,7 @@ func (s *Rfc5424TestSuite) BenchmarkParseTimestamp(c *C) {
 func (s *Rfc5424TestSuite) BenchmarkParseHeader(c *C) {
   buff := []byte("<165>1 2003-10-11T22:14:15.003Z mymachine.example.com su 123 ID47")
 
-  p := NewParser(buff)
+  p := NewParser(&buff)
 
   for i := 0; i < c.N; i++ {
     _, err := p.parseHeader()
@@ -740,7 +742,7 @@ func (s *Rfc5424TestSuite) BenchmarkParseHeader(c *C) {
 // -------------
 
 func (s *Rfc5424TestSuite) assertTimestamp(c *C, ts time.Time, b []byte, expC int, e error) {
-  p := NewParser(b)
+  p := NewParser(&b)
   obtained, err := p.parseTimestamp()
   c.Assert(err, Equals, e)
 
@@ -821,7 +823,7 @@ func (s *Rfc5424TestSuite) assertParseSecFrac(c *C, secFrac float64, b []byte, e
 }
 
 func (s *Rfc5424TestSuite) assertParseAppName(c *C, appName string, b []byte, expC int, e error) {
-  p := NewParser(b)
+  p := NewParser(&b)
   obtained, err := p.parseAppName()
 
   c.Assert(err, Equals, e)
@@ -830,7 +832,7 @@ func (s *Rfc5424TestSuite) assertParseAppName(c *C, appName string, b []byte, ex
 }
 
 func (s *Rfc5424TestSuite) assertParseProcId(c *C, procId string, b []byte, expC int, e error) {
-  p := NewParser(b)
+  p := NewParser(&b)
   obtained, err := p.parseProcId()
 
   c.Assert(err, Equals, e)
@@ -839,7 +841,7 @@ func (s *Rfc5424TestSuite) assertParseProcId(c *C, procId string, b []byte, expC
 }
 
 func (s *Rfc5424TestSuite) assertParseMsgId(c *C, msgId string, b []byte, expC int, e error) {
-  p := NewParser(b)
+  p := NewParser(&b)
   obtained, err := p.parseMsgId()
 
   c.Assert(err, Equals, e)

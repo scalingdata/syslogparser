@@ -25,7 +25,7 @@ var (
 func (s *Rfc3164TestSuite) TestParser_Valid(c *C) {
   buff := []byte("<34>Oct 11 22:14:15 mymachine very.large.syslog.message.tag: 'su root' failed for lonvick on /dev/pts/8")
 
-  p := NewParser(buff)
+  p := NewParser(&buff)
   expectedP := &Parser{
     buff:   buff,
     cursor: 0,
@@ -147,7 +147,7 @@ func (s *Rfc3164TestSuite) TestParseContent_Valid(c *C) {
   buff := []byte(" foo bar baz quux ")
   content := string(bytes.Trim(buff, " "))
 
-  p := NewParser(buff)
+  p := NewParser(&buff)
   obtained, err := p.parseContent()
   c.Assert(err, Equals, syslogparser.ErrEOL)
   c.Assert(obtained, Equals, content)
@@ -157,7 +157,7 @@ func (s *Rfc3164TestSuite) TestParseContent_Valid(c *C) {
 func (s *Rfc3164TestSuite) BenchmarkParseTimestamp(c *C) {
   buff := []byte("Oct 11 22:14:15")
 
-  p := NewParser(buff)
+  p := NewParser(&buff)
 
   for i := 0; i < c.N; i++ {
     _, err := p.parseTimestamp()
@@ -172,7 +172,7 @@ func (s *Rfc3164TestSuite) BenchmarkParseTimestamp(c *C) {
 func (s *Rfc3164TestSuite) BenchmarkParseHostname(c *C) {
   buff := []byte("gimli.local")
 
-  p := NewParser(buff)
+  p := NewParser(&buff)
 
   for i := 0; i < c.N; i++ {
     _, err := p.parseHostname()
@@ -187,7 +187,7 @@ func (s *Rfc3164TestSuite) BenchmarkParseHostname(c *C) {
 func (s *Rfc3164TestSuite) BenchmarkParseTag(c *C) {
   buff := []byte("apache2[10]:")
 
-  p := NewParser(buff)
+  p := NewParser(&buff)
 
   for i := 0; i < c.N; i++ {
     _, err := p.parseTag()
@@ -202,7 +202,7 @@ func (s *Rfc3164TestSuite) BenchmarkParseTag(c *C) {
 func (s *Rfc3164TestSuite) BenchmarkParseHeader(c *C) {
   buff := []byte("Oct 11 22:14:15 mymachine ")
 
-  p := NewParser(buff)
+  p := NewParser(&buff)
 
   for i := 0; i < c.N; i++ {
     _, err := p.parseHeader()
@@ -217,7 +217,7 @@ func (s *Rfc3164TestSuite) BenchmarkParseHeader(c *C) {
 func (s *Rfc3164TestSuite) BenchmarkParsemessage(c *C) {
   buff := []byte("sometag[123]: foo bar baz blah quux")
 
-  p := NewParser(buff)
+  p := NewParser(&buff)
 
   for i := 0; i < c.N; i++ {
     _, err := p.parsemessage()
@@ -230,7 +230,7 @@ func (s *Rfc3164TestSuite) BenchmarkParsemessage(c *C) {
 }
 
 func (s *Rfc3164TestSuite) assertTimestamp(c *C, ts time.Time, b []byte, expC int, e error) {
-  p := NewParser(b)
+  p := NewParser(&b)
   obtained, err := p.parseTimestamp()
   c.Assert(obtained, Equals, ts)
   c.Assert(p.cursor, Equals, expC)
@@ -238,7 +238,7 @@ func (s *Rfc3164TestSuite) assertTimestamp(c *C, ts time.Time, b []byte, expC in
 }
 
 func (s *Rfc3164TestSuite) assertTag(c *C, t string, b []byte, expC int, e error) {
-  p := NewParser(b)
+  p := NewParser(&b)
   obtained, err := p.parseTag()
   c.Assert(obtained, Equals, t)
   c.Assert(p.cursor, Equals, expC)
@@ -246,7 +246,7 @@ func (s *Rfc3164TestSuite) assertTag(c *C, t string, b []byte, expC int, e error
 }
 
 func (s *Rfc3164TestSuite) assertRfc3164Header(c *C, hdr header, b []byte, expC int, e error) {
-  p := NewParser(b)
+  p := NewParser(&b)
   obtained, err := p.parseHeader()
   c.Assert(err, Equals, e)
   c.Assert(obtained, Equals, hdr)
@@ -254,7 +254,7 @@ func (s *Rfc3164TestSuite) assertRfc3164Header(c *C, hdr header, b []byte, expC 
 }
 
 func (s *Rfc3164TestSuite) assertRfc3164message(c *C, msg rfc3164message, b []byte, expC int, e error) {
-  p := NewParser(b)
+  p := NewParser(&b)
   obtained, err := p.parsemessage()
   c.Assert(err, Equals, e)
   c.Assert(obtained, Equals, msg)

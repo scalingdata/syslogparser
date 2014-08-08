@@ -28,11 +28,11 @@ type rfc3164message struct {
   content string
 }
 
-func NewParser(buff []byte) *Parser {
+func NewParser(buff *[]byte) *Parser {
   return &Parser{
-    buff:   buff,
+    buff:   *buff,
     cursor: 0,
-    l:      len(buff),
+    l:      len(*buff),
     parseSuccessful: false,
   }
 }
@@ -78,10 +78,10 @@ func (p *Parser) Dump() syslogparser.LogParts {
 
 func (p *Parser) Message() message.IMessage {
   if ! p.parseSuccessful {
-    return message.NewUnparsableMessage(p.buff)
+    return message.NewUnparsableMessage(&p.buff)
   } else {
     return &Rfc3164Message{
-      rawMsg: p.buff,
+      rawMsg: &p.buff,
       ts: p.header.timestamp,
       // SD-187: rfc3164 parser doesn't extract the pid
       pid: "",

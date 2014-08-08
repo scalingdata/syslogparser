@@ -5,7 +5,7 @@ import (
 )
 
 type IMessage interface {
-  RawMessage() []byte
+  RawMessage() *[]byte
   TimeStamp() time.Time
   /* Common sense says that the pid should be an int, but in practice that would require
      taking the string the syslogparser module gives, converting it to an int, and 
@@ -21,14 +21,14 @@ type IMessage interface {
 
 
 type UnparsableMessage struct {
-  rawMsg []byte
+  rawMsg *[]byte
   ts time.Time
 }
-func NewUnparsableMessage(rawMsg []byte) *UnparsableMessage {
+func NewUnparsableMessage(rawMsg *[]byte) *UnparsableMessage {
   return &UnparsableMessage{rawMsg, time.Now().UTC()}
 }
 // SD-248: default values to should conform to RFC
-func (self *UnparsableMessage) RawMessage() []byte { return self.rawMsg }
+func (self *UnparsableMessage) RawMessage() *[]byte { return self.rawMsg }
 func (self *UnparsableMessage) TimeStamp() time.Time { return self.ts }
 func (self *UnparsableMessage) Pid() string { return "" }
 func (self *UnparsableMessage) Facility() Facility { return FacilityUnknown }
