@@ -4,6 +4,7 @@ import (
   "bytes"
   "github.com/jeromer/syslogparser"
   . "github.com/go-check/check"
+  "strings"
   "testing"
   "time"
 )
@@ -23,7 +24,7 @@ var (
 )
 
 func (s *Rfc3164TestSuite) TestParser_Valid(c *C) {
-  buff := []byte("<34>Oct 11 22:14:15 mymachine very.large.syslog.message.tag: 'su root' failed for lonvick on /dev/pts/8")
+  buff := []byte("<34>Oct 11 22:14:15 mymachine very.large.syslog.message.tag[17155]: 'su root' failed for lonvick on /dev/pts/8")
 
   p := NewParser(&buff)
   expectedP := &Parser{
@@ -48,6 +49,7 @@ func (s *Rfc3164TestSuite) TestParser_Valid(c *C) {
     "priority":  34,
     "facility":  4,
     "severity":  2,
+    "proc_id": "17155",
   }
 
   c.Assert(obtained, DeepEquals, expected)
@@ -73,10 +75,11 @@ func (s *Rfc3164TestSuite) TestParseHeader_InvalidTimestamp(c *C) {
 
 func (s *Rfc3164TestSuite) TestParsemessage_Valid(c *C) {
   content := "foo bar baz blah quux"
-  buff := []byte("sometag[123]: " + content)
+  buff := []byte("sometag[1234]: " + content)
   hdr := rfc3164message{
     tag:     "sometag",
     content: content,
+    procId: "1234",
   }
 
   s.assertRfc3164message(c, hdr, buff, len(buff), syslogparser.ErrEOL)
@@ -125,22 +128,13 @@ func (s *Rfc3164TestSuite) TestParseTimestamp_Valid(c *C) {
 func (s *Rfc3164TestSuite) TestParseTag_Pid(c *C) {
   buff := []byte("apache2[10]:")
   tag := "apache2"
-
-  s.assertTag(c, tag, buff, len(buff), nil)
+  s.assertTag(c, tag, buff, len(buff) - 5, nil)
 }
 
-func (s *Rfc3164TestSuite) TestParseTag_NoPid(c *C) {
-  buff := []byte("apache2:")
-  tag := "apache2"
-
-  s.assertTag(c, tag, buff, len(buff), nil)
-}
-
-func (s *Rfc3164TestSuite) TestParseTag_TrailingSpace(c *C) {
+func (s *Rfc3164TestSuite) TestParseTag_TrailingNoPid(c *C) {
   buff := []byte("apache2: ")
   tag := "apache2"
-
-  s.assertTag(c, tag, buff, len(buff), nil)
+  s.assertTag(c, tag, buff, len(buff) - 2, nil)
 }
 
 func (s *Rfc3164TestSuite) TestParseContent_Valid(c *C) {
@@ -148,10 +142,81 @@ func (s *Rfc3164TestSuite) TestParseContent_Valid(c *C) {
   content := string(bytes.Trim(buff, " "))
 
   p := NewParser(&buff)
-  obtained, err := p.parseContent()
+  pid, obtained, err := p.parseContent()
   c.Assert(err, Equals, syslogparser.ErrEOL)
   c.Assert(obtained, Equals, content)
-  c.Assert(p.cursor, Equals, len(content))
+  c.Assert(pid, Equals, "")
+  c.Assert(p.cursor, Equals, len(buff))
+}
+
+func (s *Rfc3164TestSuite) TestParseContent_ValidWithPid(c *C) {
+  buff := []byte("[17155]:  foo bar baz quux ")
+  content := string(strings.Trim(" foo bar baz quux ", " "))
+
+  p := NewParser(&buff)
+  pid, obtained, err := p.parseContent()
+  c.Assert(err, Equals, syslogparser.ErrEOL)
+  c.Assert(obtained, Equals, content)
+  c.Assert(pid, Equals, "17155")
+  c.Assert(p.cursor, Equals, len(buff))
+}
+
+func (s *Rfc3164TestSuite) TestParseContent_NoClosingPid(c *C) {
+  buff := []byte("[17155234234")
+  content := string(buff)
+
+  p := NewParser(&buff)
+  pid, obtained, err := p.parseContent()
+  c.Assert(err, Equals, syslogparser.ErrEOL)
+  c.Assert(obtained, Equals, content)
+  c.Assert(pid, Equals, "")
+}
+
+func (s *Rfc3164TestSuite) TestParseContent_NoMessage(c *C) {
+  buff := []byte("")
+  p := NewParser(&buff)
+  pid, obtained, err := p.parseContent()
+  c.Assert(err, Equals, syslogparser.ErrEOL)
+  c.Assert(obtained, Equals, "")
+  c.Assert(pid, Equals, "")
+}
+
+func (s *Rfc3164TestSuite) TestParseContent_VariousSeps(c *C) {
+  for _, msg := range []string{"[10]somestuff", "[10]:somestuff", "[10] somestuff", "[10]: somestuff"} {
+    bytes := []byte(msg)
+    p := NewParser(&bytes)
+    pid, obtained, err := p.parseContent()
+    c.Assert(err, Equals, syslogparser.ErrEOL)
+    c.Assert(obtained, Equals, "somestuff")
+    c.Assert(pid, Equals, "10")
+  }
+}
+
+func (s *Rfc3164TestSuite) TestParseContent_PidExtraOpenBracket(c *C) {
+  buff := []byte("[10[12]")
+  p := NewParser(&buff)
+  pid, obtained, err := p.parseContent()
+  c.Assert(err, Equals, syslogparser.ErrEOL)
+  c.Assert(obtained, Equals, "[10[12]")
+  c.Assert(pid, Equals, "")
+}
+
+func (s *Rfc3164TestSuite) TestParseContent_PidMultipleEntries(c *C) {
+  buff := []byte("[10][12] some message")
+  p := NewParser(&buff)
+  pid, obtained, err := p.parseContent()
+  c.Assert(err, Equals, syslogparser.ErrEOL)
+  c.Assert(obtained, Equals, "[12] some message")
+  c.Assert(pid, Equals, "10")
+}
+
+func (s *Rfc3164TestSuite) TestParseContent_NoPidOrMsgButSep(c *C) {
+  buff := []byte(":")
+  p := NewParser(&buff)
+  pid, obtained, err := p.parseContent()
+  c.Assert(err, Equals, syslogparser.ErrEOL)
+  c.Assert(obtained, Equals, "")
+  c.Assert(pid, Equals, "")
 }
 
 func (s *Rfc3164TestSuite) BenchmarkParseTimestamp(c *C) {
@@ -237,10 +302,10 @@ func (s *Rfc3164TestSuite) assertTimestamp(c *C, ts time.Time, b []byte, expC in
   c.Assert(err, Equals, e)
 }
 
-func (s *Rfc3164TestSuite) assertTag(c *C, t string, b []byte, expC int, e error) {
+func (s *Rfc3164TestSuite) assertTag(c *C, tag string, b []byte, expC int, e error) {
   p := NewParser(&b)
-  obtained, err := p.parseTag()
-  c.Assert(obtained, Equals, t)
+  obtainedTag, err := p.parseTag()
+  c.Assert(obtainedTag, Equals, tag)
   c.Assert(p.cursor, Equals, expC)
   c.Assert(err, Equals, e)
 }

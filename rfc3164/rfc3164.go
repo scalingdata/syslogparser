@@ -25,6 +25,7 @@ type header struct {
 
 type rfc3164message struct {
   tag     string
+  procId  string
   content string
 }
 
@@ -73,6 +74,7 @@ func (p *Parser) Dump() syslogparser.LogParts {
     "priority":  p.priority.P,
     "facility":  p.priority.F.Value,
     "severity":  p.priority.S.Value,
+    "proc_id":   p.message.procId,
   }
 }
 
@@ -126,13 +128,13 @@ func (p *Parser) parsemessage() (rfc3164message, error) {
   if err != nil {
     return msg, err
   }
+  msg.tag = tag
 
-  content, err := p.parseContent()
+  pid, content, err := p.parseContent()
   if err != syslogparser.ErrEOL {
     return msg, err
   }
-
-  msg.tag = tag
+  msg.procId = pid
   msg.content = content
 
   return msg, err
@@ -195,55 +197,80 @@ func (p *Parser) parseHostname() (string, error) {
 
 // http://tools.ietf.org/html/rfc3164#section-4.1.3
 func (p *Parser) parseTag() (string, error) {
-  var b byte
-  var endOfTag bool
-  var bracketOpen bool
-  var tag []byte
-  var err error
-  var found bool
-
-  from := p.cursor
-
-  for {
-    b = p.buff[p.cursor]
-    bracketOpen = (b == '[')
-    endOfTag = (b == ':' || b == ' ')
-
-    // XXX : parse PID ?
-    if bracketOpen {
-      tag = p.buff[from:p.cursor]
-      found = true
+  i := 0;
+  for i < (p.l - p.cursor) {
+    curChar := p.buff[p.cursor + i]
+    if (curChar >= '0' && curChar <= '9') ||
+      (curChar >= 'a' && curChar <= 'z') ||
+      (curChar >= 'A' && curChar <= 'Z') ||
+      /* Note that the spec says to stop on *any* non-alphanumeric, but the original
+         author of this lib specifically allowed '.' chars so we're retaining this
+         divergance from the specification until we find a reason not to. */
+      (curChar == '.') { 
+      i++
+    } else {
+      tag := p.buff[p.cursor:p.cursor+i]
+      p.cursor = p.cursor+i
+      return string(tag), nil
     }
-
-    if endOfTag {
-      if !found {
-        tag = p.buff[from:p.cursor]
-        found = true
-      }
-
-      p.cursor++
-      break
-    }
-
-    p.cursor++
   }
-
-  if (p.cursor < p.l) && (p.buff[p.cursor] == ' ') {
-    p.cursor++
-  }
-
-  return string(tag), err
+  tag := p.buff[p.cursor:p.cursor+i]
+  p.cursor = p.cursor+i
+  return string(tag), nil
 }
 
-func (p *Parser) parseContent() (string, error) {
-  if p.cursor > p.l {
-    return "", syslogparser.ErrEOL
+func (p *Parser) parseContent() (string, string, error) {
+  if p.cursor >= p.l {
+    return "", "", syslogparser.ErrEOL
+  }
+
+  pid, err := p.parsePid()
+  if nil != err {
+    return "", "", err
+  }
+
+  /* Trim any padding that might appear after the pid */
+  curChar := p.buff[p.cursor]
+  for (':' == curChar || ' ' == curChar) &&  (p.cursor < p.l) {
+    p.cursor++
+    if p.cursor < p.l {
+      curChar = p.buff[p.cursor]
+    }
   }
 
   content := bytes.Trim(p.buff[p.cursor:p.l], " ")
-  p.cursor += len(content)
+  p.cursor = p.l
 
-  return string(content), syslogparser.ErrEOL
+  return pid, string(content), syslogparser.ErrEOL
+}
+
+func (p *Parser) parsePid() (string, error) {
+  if '[' != p.buff[p.cursor] {
+    return "", nil
+  } else {
+    /* Walk past our initial '[' char until we find a non-numeric
+       value or we hit the end of the buffer. */
+    i := p.cursor + 1;
+    curChar := p.buff[i]; 
+    for (curChar >= '0' && curChar <= '9') && i < p.l {
+      i++
+      if i < p.l {
+        curChar = p.buff[i]
+      }
+    }
+    if i >= p.l {
+      /* We got to the end of the buffer, and no closing bracket found */
+      return "", nil
+    } else if ']' == p.buff[i] {
+      /* Found closing bracket, pull out the pid */
+      pid := p.buff[p.cursor+1:i]
+      p.cursor = i+1
+      return string(pid), nil
+    } else {
+      /* We found a non-numeric value that wasn't the ']', not a pid */
+      return "", nil
+    }
+  }
 }
 
 func fixTimestampIfNeeded(ts *time.Time) {
