@@ -2,8 +2,8 @@ package rfc3164
 
 import (
   "bytes"
-  "github.com/jeromer/syslogparser"
-  message "github.com/jeromer/syslogparser/message"
+  "github.com/scalingdata/syslogparser"
+  message "github.com/scalingdata/syslogparser/message"
   "time"
 )
 

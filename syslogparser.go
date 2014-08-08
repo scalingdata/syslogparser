@@ -2,7 +2,7 @@ package syslogparser
 
 import (
   "fmt"
-  message "github.com/jeromer/syslogparser/message"
+  message "github.com/scalingdata/syslogparser/message"
   "strconv"
   "strings"
 )

@@ -5,8 +5,8 @@ package rfc5424
 
 import (
   "fmt"
-  "github.com/jeromer/syslogparser"
-  message "github.com/jeromer/syslogparser/message"
+  "github.com/scalingdata/syslogparser"
+  message "github.com/scalingdata/syslogparser/message"
   "math"
   "strconv"
   "time"

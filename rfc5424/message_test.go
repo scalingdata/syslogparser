@@ -4,7 +4,7 @@ import (
   . "github.com/scalingdata/check"
   "time"
   "testing"
-  message "github.com/jeromer/syslogparser/message"
+  message "github.com/scalingdata/syslogparser/message"
 )
 
 var sampleRfc5424Log []byte = []byte(`<94>1 2014-06-06T20:07:15.000000+00:00 webtest-mark simlogging 23456 ID47 [exampleSDID@32473 iut="9" eventSource="rawr" eventID="123"] This is a log.info() message in a fancy format`)

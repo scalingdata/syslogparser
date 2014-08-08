@@ -3,7 +3,7 @@ package multiparser
 import (
   . "github.com/scalingdata/check"
   "strings"
-  syslogmsg "github.com/jeromer/syslogparser/message"
+  syslogmsg "github.com/scalingdata/syslogparser/message"
   "testing"
   "time"
 )

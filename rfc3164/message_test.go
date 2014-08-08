@@ -4,7 +4,7 @@ import (
   . "github.com/scalingdata/check"
   "time"
   "testing"
-  message "github.com/jeromer/syslogparser/message"
+  message "github.com/scalingdata/syslogparser/message"
 )
 
 // Hooks up gocheck into the gotest runner.

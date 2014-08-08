@@ -1,7 +1,7 @@
 package rfc5424
 
 import (
-  message "github.com/jeromer/syslogparser/message"
+  message "github.com/scalingdata/syslogparser/message"
   "time"
 )
 

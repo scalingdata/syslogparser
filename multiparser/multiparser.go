@@ -3,11 +3,11 @@ package multiparser
 import (
   "fmt"
   log "github.com/scalingdata/log4go"
-  "github.com/jeromer/syslogparser"
-  message "github.com/jeromer/syslogparser/message"
+  "github.com/scalingdata/syslogparser"
+  message "github.com/scalingdata/syslogparser/message"
   "reflect"
-  "github.com/jeromer/syslogparser/rfc3164"
-  "github.com/jeromer/syslogparser/rfc5424"
+  "github.com/scalingdata/syslogparser/rfc3164"
+  "github.com/scalingdata/syslogparser/rfc5424"
   "strings"
 )
 

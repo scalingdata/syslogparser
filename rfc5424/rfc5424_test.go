@@ -2,7 +2,7 @@ package rfc5424
 
 import (
   "fmt"
-  "github.com/jeromer/syslogparser"
+  "github.com/scalingdata/syslogparser"
   . "github.com/scalingdata/check"
   "testing"
   "time"
