@@ -85,8 +85,7 @@ func (p *Parser) Message() message.IMessage {
     return &Rfc3164Message{
       rawMsg: &p.buff,
       ts: p.header.timestamp,
-      // SD-187: rfc3164 parser doesn't extract the pid
-      pid: "",
+      pid: p.message.procId,
       facility: message.Facility(p.priority.F.Value),
       severity: message.Severity(p.priority.S.Value),
       process: p.message.tag,
