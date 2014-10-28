@@ -10,10 +10,21 @@ import (
 
 // Hooks up gocheck into the gotest runner.
 func TestMutliParser(t *testing.T) { TestingT(t) }
-type MultiParserTestSuite struct {}
+type MultiParserTestSuite struct {
+  originalLocale *time.Location
+}
 var _ = Suite(&MultiParserTestSuite{})
 
 var rfc3164ValidMsg []byte = []byte("<94>Jun 06 20:07:15 webtest-mark simlogging[17155]: This is a log.info() message")
+
+func (s *MultiParserTestSuite) SetUpTest(c *C) {
+  s.originalLocale = time.Local
+  time.Local = time.UTC
+}
+
+func (s *MultiParserTestSuite) TearDownTest(c *C) {
+  time.Local = s.originalLocale
+}
 
 func (s *MultiParserTestSuite) TestRfc3164Message(c *C) {
   parser := NewRfcParser(&rfc3164ValidMsg)
