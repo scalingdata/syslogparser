@@ -13,6 +13,7 @@ import (
 func Test(t *testing.T) { TestingT(t) }
 
 type Rfc3164TestSuite struct {
+  originalLocale *time.Location
 }
 
 var (
@@ -22,6 +23,15 @@ var (
   // XXX : Jan  2 15:04:05
   lastTriedTimestampLen = 15
 )
+
+func (s *Rfc3164TestSuite) SetUpTest(c *C) {
+  s.originalLocale = time.Local
+  time.Local = time.UTC
+}
+
+func (s *Rfc3164TestSuite) TearDownTest(c *C) {
+  time.Local = s.originalLocale
+}
 
 func (s *Rfc3164TestSuite) TestParser_Valid(c *C) {
   buff := []byte("<34>Oct 11 22:14:15 mymachine very.large.syslog.message.tag[17155]: 'su root' failed for lonvick on /dev/pts/8")
@@ -60,6 +70,23 @@ func (s *Rfc3164TestSuite) TestParseHeader_Valid(c *C) {
   now := time.Now()
   hdr := header{
     timestamp: time.Date(now.Year(), time.October, 11, 22, 14, 15, 0, time.UTC),
+    hostname:  "mymachine",
+  }
+
+  s.assertRfc3164Header(c, hdr, buff, 25, nil)
+}
+
+func (s *Rfc3164TestSuite) TestParseHeader_UseLocalTimezone(c *C) {
+  loc, err := time.LoadLocation("EST")
+  if nil != err {
+    c.Fatal(err)
+  }
+  time.Local = loc
+
+  buff := []byte("Oct 11 16:14:15 mymachine ")
+  now := time.Now()
+  hdr := header{
+    timestamp: time.Date(now.Year(), time.October, 11, 21, 14, 15, 0, time.UTC),
     hostname:  "mymachine",
   }
 

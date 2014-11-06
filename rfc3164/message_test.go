@@ -13,9 +13,19 @@ func TestMessage(t *testing.T) { TestingT(t) }
 var sampleRfc3164Log = []byte("<94>Jun 06 20:07:15 webtest-mark simlogging[17155]: This is a log.info() message")
 
 type Rfc3164MessageTestSuite struct {
+  originalLocale *time.Location
 }
 
 var _ = Suite(&Rfc3164MessageTestSuite{})
+
+func (s *Rfc3164MessageTestSuite) SetUpTest(c *C) {
+  s.originalLocale = time.Local
+  time.Local = time.UTC
+}
+
+func (s *Rfc3164MessageTestSuite) TearDownTest(c *C) {
+  time.Local = s.originalLocale
+}
 
 func (s *Rfc3164MessageTestSuite) TestMessageFromRfc3164(c *C) {
   parser := NewParser(&sampleRfc3164Log)
@@ -31,7 +41,7 @@ func (s *Rfc3164MessageTestSuite) TestMessageFromRfc3164(c *C) {
   c.Assert("simlogging", Equals, msg.Process())
   c.Assert(message.Info, Equals, msg.Severity())
   c.Assert(message.Ftp, Equals, msg.Facility())
-  c.Assert("", Equals, msg.Pid())
+  c.Assert("17155", Equals, msg.Pid())
 }
 
 func (s *Rfc3164MessageTestSuite) TestMessageCantParseMessage(c *C) {

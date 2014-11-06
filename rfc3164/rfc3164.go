@@ -160,8 +160,9 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
     }
 
     sub = p.buff[p.cursor : tsFmtLen+p.cursor]
-    ts, err = time.Parse(tsFmt, string(sub))
+    ts, err = time.ParseInLocation(tsFmt, string(sub), time.Local)
     if err == nil {
+      ts = ts.UTC()
       found = true
       break
     }
