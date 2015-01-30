@@ -65,6 +65,38 @@ func (s *Rfc3164TestSuite) TestParser_Valid(c *C) {
   c.Assert(obtained, DeepEquals, expected)
 }
 
+func (s *Rfc3164TestSuite) TestParser_DashUnderScoreTag(c *C) {
+  buff := []byte("<34>Oct 11 22:14:15 mymachine very-large_syslog-message_tag[17155]: 'su root' failed for lonvick on /dev/pts/8")
+
+  p := NewParser(&buff)
+  expectedP := &Parser{
+    buff:   buff,
+    cursor: 0,
+    l:      len(buff),
+  }
+
+  c.Assert(p, DeepEquals, expectedP)
+
+  err := p.Parse()
+  c.Assert(err, IsNil)
+
+  now := time.Now()
+
+  obtained := p.Dump()
+  expected := syslogparser.LogParts{
+    "timestamp": time.Date(now.Year(), time.October, 11, 22, 14, 15, 0, time.UTC),
+    "hostname":  "mymachine",
+    "tag":       "very-large_syslog-message_tag",
+    "content":   "'su root' failed for lonvick on /dev/pts/8",
+    "priority":  34,
+    "facility":  4,
+    "severity":  2,
+    "proc_id": "17155",
+  }
+
+  c.Assert(obtained, DeepEquals, expected)
+}
+
 func (s *Rfc3164TestSuite) TestParseHeader_Valid(c *C) {
   buff := []byte("Oct 11 22:14:15 mymachine ")
   now := time.Now()
