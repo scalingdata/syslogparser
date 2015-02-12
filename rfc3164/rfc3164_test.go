@@ -22,6 +22,7 @@ var (
   // XXX : corresponds to the length of the last tried timestamp format
   // XXX : Jan  2 15:04:05
   lastTriedTimestampLen = 15
+  octTestDate = func() time.Time { return time.Date(2015, time.October, 12, 0, 0, 0, 0, time.Now().Location()) } 
 )
 
 func (s *Rfc3164TestSuite) SetUpTest(c *C) {
@@ -35,24 +36,25 @@ func (s *Rfc3164TestSuite) TearDownTest(c *C) {
 
 func (s *Rfc3164TestSuite) TestParser_Valid(c *C) {
   buff := []byte("<34>Oct 11 22:14:15 mymachine very.large.syslog.message.tag[17155]: 'su root' failed for lonvick on /dev/pts/8")
-
+ 
   p := NewParser(&buff)
+  p.TimeFunction = nil
   expectedP := &Parser{
     buff:   buff,
     cursor: 0,
     l:      len(buff),
+    TimeFunction: nil,
   }
 
   c.Assert(p, DeepEquals, expectedP)
 
+  p.TimeFunction = octTestDate
   err := p.Parse()
   c.Assert(err, IsNil)
 
-  now := time.Now()
-
   obtained := p.Dump()
   expected := syslogparser.LogParts{
-    "timestamp": time.Date(now.Year(), time.October, 11, 22, 14, 15, 0, time.UTC),
+    "timestamp": time.Date(2015, time.October, 11, 22, 14, 15, 0, time.UTC),
     "hostname":  "mymachine",
     "tag":       "very.large.syslog.message.tag",
     "content":   "'su root' failed for lonvick on /dev/pts/8",
@@ -69,22 +71,13 @@ func (s *Rfc3164TestSuite) TestParser_DashUnderScoreTag(c *C) {
   buff := []byte("<34>Oct 11 22:14:15 mymachine very-large_syslog-message_tag[17155]: 'su root' failed for lonvick on /dev/pts/8")
 
   p := NewParser(&buff)
-  expectedP := &Parser{
-    buff:   buff,
-    cursor: 0,
-    l:      len(buff),
-  }
-
-  c.Assert(p, DeepEquals, expectedP)
-
+  p.TimeFunction = octTestDate
   err := p.Parse()
   c.Assert(err, IsNil)
 
-  now := time.Now()
-
   obtained := p.Dump()
   expected := syslogparser.LogParts{
-    "timestamp": time.Date(now.Year(), time.October, 11, 22, 14, 15, 0, time.UTC),
+    "timestamp": time.Date(2015, time.October, 11, 22, 14, 15, 0, time.UTC),
     "hostname":  "mymachine",
     "tag":       "very-large_syslog-message_tag",
     "content":   "'su root' failed for lonvick on /dev/pts/8",
@@ -99,9 +92,8 @@ func (s *Rfc3164TestSuite) TestParser_DashUnderScoreTag(c *C) {
 
 func (s *Rfc3164TestSuite) TestParseHeader_Valid(c *C) {
   buff := []byte("Oct 11 22:14:15 mymachine ")
-  now := time.Now()
   hdr := header{
-    timestamp: time.Date(now.Year(), time.October, 11, 22, 14, 15, 0, time.UTC),
+    timestamp: time.Date(2015, time.October, 11, 22, 14, 15, 0, time.UTC),
     hostname:  "mymachine",
   }
 
@@ -116,9 +108,8 @@ func (s *Rfc3164TestSuite) TestParseHeader_UseLocalTimezone(c *C) {
   time.Local = loc
 
   buff := []byte("Oct 11 16:14:15 mymachine ")
-  now := time.Now()
   hdr := header{
-    timestamp: time.Date(now.Year(), time.October, 11, 21, 14, 15, 0, time.UTC),
+    timestamp: time.Date(2015, time.October, 11, 21, 14, 15, 0, time.UTC),
     hostname:  "mymachine",
   }
 
@@ -156,8 +147,7 @@ func (s *Rfc3164TestSuite) TestParseTimestamp_TrailingSpace(c *C) {
   // XXX : no timezone specified. Assume UTC
   buff := []byte("Oct 11 22:14:15 ")
 
-  now := time.Now()
-  ts := time.Date(now.Year(), time.October, 11, 22, 14, 15, 0, time.UTC)
+  ts := time.Date(2015, time.October, 11, 22, 14, 15, 0, time.UTC)
 
   s.assertTimestamp(c, ts, buff, len(buff), nil)
 }
@@ -167,8 +157,7 @@ func (s *Rfc3164TestSuite) TestParseTimestamp_OneDigitForMonths(c *C) {
   // XXX : no timezone specified. Assume UTC
   buff := []byte("Oct  1 22:14:15")
 
-  now := time.Now()
-  ts := time.Date(now.Year(), time.October, 1, 22, 14, 15, 0, time.UTC)
+  ts := time.Date(2015, time.October, 1, 22, 14, 15, 0, time.UTC)
 
   s.assertTimestamp(c, ts, buff, len(buff), nil)
 }
@@ -178,8 +167,7 @@ func (s *Rfc3164TestSuite) TestParseTimestamp_Valid(c *C) {
   // XXX : no timezone specified. Assume UTC
   buff := []byte("Oct 11 22:14:15")
 
-  now := time.Now()
-  ts := time.Date(now.Year(), time.October, 11, 22, 14, 15, 0, time.UTC)
+  ts := time.Date(2015, time.October, 11, 22, 14, 15, 0, time.UTC)
 
   s.assertTimestamp(c, ts, buff, len(buff), nil)
 }
@@ -201,6 +189,7 @@ func (s *Rfc3164TestSuite) TestParseContent_Valid(c *C) {
   content := string(bytes.Trim(buff, " "))
 
   p := NewParser(&buff)
+  p.TimeFunction = octTestDate
   pid, obtained, err := p.parseContent()
   c.Assert(err, Equals, syslogparser.ErrEOL)
   c.Assert(obtained, Equals, content)
@@ -213,6 +202,7 @@ func (s *Rfc3164TestSuite) TestParseContent_ValidWithPid(c *C) {
   content := string(strings.Trim(" foo bar baz quux ", " "))
 
   p := NewParser(&buff)
+  p.TimeFunction = octTestDate
   pid, obtained, err := p.parseContent()
   c.Assert(err, Equals, syslogparser.ErrEOL)
   c.Assert(obtained, Equals, content)
@@ -225,6 +215,7 @@ func (s *Rfc3164TestSuite) TestParseContent_NoClosingPid(c *C) {
   content := string(buff)
 
   p := NewParser(&buff)
+  p.TimeFunction = octTestDate
   pid, obtained, err := p.parseContent()
   c.Assert(err, Equals, syslogparser.ErrEOL)
   c.Assert(obtained, Equals, content)
@@ -234,6 +225,7 @@ func (s *Rfc3164TestSuite) TestParseContent_NoClosingPid(c *C) {
 func (s *Rfc3164TestSuite) TestParseContent_NoMessage(c *C) {
   buff := []byte("")
   p := NewParser(&buff)
+  p.TimeFunction = octTestDate
   pid, obtained, err := p.parseContent()
   c.Assert(err, Equals, syslogparser.ErrEOL)
   c.Assert(obtained, Equals, "")
@@ -244,6 +236,7 @@ func (s *Rfc3164TestSuite) TestParseContent_VariousSeps(c *C) {
   for _, msg := range []string{"[10]somestuff", "[10]:somestuff", "[10] somestuff", "[10]: somestuff"} {
     bytes := []byte(msg)
     p := NewParser(&bytes)
+    p.TimeFunction = octTestDate
     pid, obtained, err := p.parseContent()
     c.Assert(err, Equals, syslogparser.ErrEOL)
     c.Assert(obtained, Equals, "somestuff")
@@ -254,6 +247,7 @@ func (s *Rfc3164TestSuite) TestParseContent_VariousSeps(c *C) {
 func (s *Rfc3164TestSuite) TestParseContent_PidExtraOpenBracket(c *C) {
   buff := []byte("[10[12]")
   p := NewParser(&buff)
+  p.TimeFunction = octTestDate
   pid, obtained, err := p.parseContent()
   c.Assert(err, Equals, syslogparser.ErrEOL)
   c.Assert(obtained, Equals, "[10[12]")
@@ -263,6 +257,7 @@ func (s *Rfc3164TestSuite) TestParseContent_PidExtraOpenBracket(c *C) {
 func (s *Rfc3164TestSuite) TestParseContent_PidMultipleEntries(c *C) {
   buff := []byte("[10][12] some message")
   p := NewParser(&buff)
+  p.TimeFunction = octTestDate
   pid, obtained, err := p.parseContent()
   c.Assert(err, Equals, syslogparser.ErrEOL)
   c.Assert(obtained, Equals, "[12] some message")
@@ -272,6 +267,7 @@ func (s *Rfc3164TestSuite) TestParseContent_PidMultipleEntries(c *C) {
 func (s *Rfc3164TestSuite) TestParseContent_NoPidOrMsgButSep(c *C) {
   buff := []byte(":")
   p := NewParser(&buff)
+  p.TimeFunction = octTestDate
   pid, obtained, err := p.parseContent()
   c.Assert(err, Equals, syslogparser.ErrEOL)
   c.Assert(obtained, Equals, "")
@@ -282,6 +278,7 @@ func (s *Rfc3164TestSuite) BenchmarkParseTimestamp(c *C) {
   buff := []byte("Oct 11 22:14:15")
 
   p := NewParser(&buff)
+  p.TimeFunction = octTestDate
 
   for i := 0; i < c.N; i++ {
     _, err := p.parseTimestamp()
@@ -297,6 +294,7 @@ func (s *Rfc3164TestSuite) BenchmarkParseHostname(c *C) {
   buff := []byte("gimli.local")
 
   p := NewParser(&buff)
+  p.TimeFunction = octTestDate
 
   for i := 0; i < c.N; i++ {
     _, err := p.parseHostname()
@@ -312,6 +310,7 @@ func (s *Rfc3164TestSuite) BenchmarkParseTag(c *C) {
   buff := []byte("apache2[10]:")
 
   p := NewParser(&buff)
+  p.TimeFunction = octTestDate
 
   for i := 0; i < c.N; i++ {
     _, err := p.parseTag()
@@ -327,6 +326,7 @@ func (s *Rfc3164TestSuite) BenchmarkParseHeader(c *C) {
   buff := []byte("Oct 11 22:14:15 mymachine ")
 
   p := NewParser(&buff)
+  p.TimeFunction = octTestDate
 
   for i := 0; i < c.N; i++ {
     _, err := p.parseHeader()
@@ -342,6 +342,7 @@ func (s *Rfc3164TestSuite) BenchmarkParsemessage(c *C) {
   buff := []byte("sometag[123]: foo bar baz blah quux")
 
   p := NewParser(&buff)
+  p.TimeFunction = octTestDate
 
   for i := 0; i < c.N; i++ {
     _, err := p.parsemessage()
@@ -355,6 +356,7 @@ func (s *Rfc3164TestSuite) BenchmarkParsemessage(c *C) {
 
 func (s *Rfc3164TestSuite) assertTimestamp(c *C, ts time.Time, b []byte, expC int, e error) {
   p := NewParser(&b)
+  p.TimeFunction = octTestDate
   obtained, err := p.parseTimestamp()
   c.Assert(obtained, Equals, ts)
   c.Assert(p.cursor, Equals, expC)
@@ -363,6 +365,7 @@ func (s *Rfc3164TestSuite) assertTimestamp(c *C, ts time.Time, b []byte, expC in
 
 func (s *Rfc3164TestSuite) assertTag(c *C, tag string, b []byte, expC int, e error) {
   p := NewParser(&b)
+  p.TimeFunction = octTestDate
   obtainedTag, err := p.parseTag()
   c.Assert(obtainedTag, Equals, tag)
   c.Assert(p.cursor, Equals, expC)
@@ -371,6 +374,7 @@ func (s *Rfc3164TestSuite) assertTag(c *C, tag string, b []byte, expC int, e err
 
 func (s *Rfc3164TestSuite) assertRfc3164Header(c *C, hdr header, b []byte, expC int, e error) {
   p := NewParser(&b)
+  p.TimeFunction = octTestDate
   obtained, err := p.parseHeader()
   c.Assert(err, Equals, e)
   c.Assert(obtained, Equals, hdr)
@@ -379,6 +383,7 @@ func (s *Rfc3164TestSuite) assertRfc3164Header(c *C, hdr header, b []byte, expC 
 
 func (s *Rfc3164TestSuite) assertRfc3164message(c *C, msg rfc3164message, b []byte, expC int, e error) {
   p := NewParser(&b)
+  p.TimeFunction = octTestDate
   obtained, err := p.parsemessage()
   c.Assert(err, Equals, e)
   c.Assert(obtained, Equals, msg)

@@ -2,6 +2,7 @@ package rfc3164
 
 import (
   "bytes"
+  "math"
   "github.com/scalingdata/syslogparser"
   message "github.com/scalingdata/syslogparser/message"
   "time"
@@ -16,7 +17,10 @@ type Parser struct {
   header   header
   message  rfc3164message
   parseSuccessful bool
+  TimeFunction TimeNow
 }
+
+type TimeNow func() time.Time
 
 type header struct {
   timestamp time.Time
@@ -35,6 +39,7 @@ func NewParser(buff *[]byte) *Parser {
     cursor: 0,
     l:      len(*buff),
     parseSuccessful: false,
+    TimeFunction: time.Now,
   }
 }
 
@@ -180,7 +185,7 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
     return ts, syslogparser.ErrTimestampUnknownFormat
   }
 
-  fixTimestampIfNeeded(&ts)
+  p.fixTimestampIfNeeded(&ts)
 
   p.cursor += tsFmtLen
 
@@ -275,16 +280,37 @@ func (p *Parser) parsePid() (string, error) {
   }
 }
 
-func fixTimestampIfNeeded(ts *time.Time) {
-  now := time.Now()
-  y := ts.Year()
-
-  if ts.Year() == 0 {
-    y = now.Year()
+func (p *Parser) fixTimestampIfNeeded(ts *time.Time) {
+  /* Don't clobber a valid year */
+  if ts.Year() > 0 {
+    return
   }
 
-  newTs := time.Date(y, ts.Month(), ts.Day(), ts.Hour(), ts.Minute(),
+  /* Chanegable for testing, should be time.Now in regular use */
+  now := p.TimeFunction()
+  
+  /* Compute the event timestamp this year, next year and last year.
+     This covers cases where an event crosses December->January, and
+     the sender's clock is ahead of ours and the event goes January-> December */
+
+  newTs := time.Date(now.Year(), ts.Month(), ts.Day(), ts.Hour(), ts.Minute(),
+    ts.Second(), ts.Nanosecond(), ts.Location())
+  lastYearTs := time.Date(now.Year()-1, ts.Month(), ts.Day(), ts.Hour(), ts.Minute(),
+    ts.Second(), ts.Nanosecond(), ts.Location())
+  nextYearTs := time.Date(now.Year()+1, ts.Month(), ts.Day(), ts.Hour(), ts.Minute(),
     ts.Second(), ts.Nanosecond(), ts.Location())
 
-  *ts = newTs
+  /* Take the time in seconds between the current date and each candidate timestamp */
+  lastYearDiff := float64(now.Unix() - lastYearTs.Unix())
+  nextYearDiff := float64(nextYearTs.Unix() - now.Unix())
+  thisYearDiff := math.Abs(float64(now.Unix() - newTs.Unix()))
+
+  /* Set the event timestamp to the candidate which is closest to today's date */
+  if lastYearDiff < nextYearDiff && lastYearDiff < thisYearDiff {
+    *ts = lastYearTs
+  } else if nextYearDiff < lastYearDiff && nextYearDiff < thisYearDiff {
+    *ts = nextYearTs
+  } else {
+    *ts = newTs
+  }
 }

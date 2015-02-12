@@ -10,7 +10,10 @@ import (
 // Hooks up gocheck into the gotest runner.
 func TestMessage(t *testing.T) { TestingT(t) }
 
-var sampleRfc3164Log = []byte("<94>Jun 06 20:07:15 webtest-mark simlogging[17155]: This is a log.info() message")
+var (
+  sampleRfc3164Log = []byte("<94>Jun 06 20:07:15 webtest-mark simlogging[17155]: This is a log.info() message")
+  testDate = func() time.Time { return time.Date(2015, 6, 6, 0, 0, 0, 0, time.Now().Location()) } 
+)
 
 type Rfc3164MessageTestSuite struct {
   originalLocale *time.Location
@@ -29,6 +32,7 @@ func (s *Rfc3164MessageTestSuite) TearDownTest(c *C) {
 
 func (s *Rfc3164MessageTestSuite) TestMessageFromRfc3164(c *C) {
   parser := NewParser(&sampleRfc3164Log)
+  parser.TimeFunction = testDate
   err := parser.Parse()
   if nil != err {
     c.Fatal(err)
@@ -37,7 +41,7 @@ func (s *Rfc3164MessageTestSuite) TestMessageFromRfc3164(c *C) {
   c.Assert(string(sampleRfc3164Log), Equals, string(*msg.RawMessage()))
   c.Assert("webtest-mark", Equals, msg.Hostname())
   c.Assert("This is a log.info() message", Equals, msg.Message())
-  c.Assert(true, Equals, time.Unix(1402085235, 0).Equal(msg.TimeStamp()))
+  c.Assert(time.Date(2015, 6, 6, 20, 7, 15, 0, time.Now().Location()), Equals, msg.TimeStamp())
   c.Assert("simlogging", Equals, msg.Process())
   c.Assert(message.Info, Equals, msg.Severity())
   c.Assert(message.Ftp, Equals, msg.Facility())
@@ -47,6 +51,7 @@ func (s *Rfc3164MessageTestSuite) TestMessageFromRfc3164(c *C) {
 func (s *Rfc3164MessageTestSuite) TestMessageCantParseMessage(c *C) {
   badMsg := []byte("FOO BAR BAZ")
   parser := NewParser(&badMsg)
+  parser.TimeFunction = testDate
   err := parser.Parse()
   if nil == err {
     c.Fatal("Parsing was expected to fail, but did not")
@@ -62,3 +67,32 @@ func (s *Rfc3164MessageTestSuite) TestMessageCantParseMessage(c *C) {
   c.Assert("", Equals, msg.Pid())
 }
 
+/* Test recieving a mesaage from slightly in the past, over a year boundary */
+func (s *Rfc3164MessageTestSuite) TestMessageFromDecemberInJanuary(c *C) {
+  log := []byte("<94>Dec 29 20:07:15 webtest-mark simlogging[17155]: This is a log.info() message")
+  testDecDate := func() time.Time { return time.Date(2015, 1, 2, 0, 0, 0, 0, time.Now().Location()) } 
+
+  parser := NewParser(&log)
+  parser.TimeFunction = testDecDate
+  err := parser.Parse()
+  if nil != err {
+    c.Fatal(err)
+  }
+  var msg message.IMessage = parser.Message()
+  c.Assert(time.Date(2014, 12, 29, 20, 7, 15, 0, time.Now().Location()), Equals, msg.TimeStamp())
+}
+
+/* Test recieving a message from slightly in the future, over a year boundary */
+func (s *Rfc3164MessageTestSuite) TestMessageFromJanuaryInDecember(c *C) {
+  log := []byte("<94>Jan 01 20:07:15 webtest-mark simlogging[17155]: This is a log.info() message")
+  testJanDate := func() time.Time { return time.Date(2015, 12, 29, 0, 0, 0, 0, time.Now().Location()) } 
+
+  parser := NewParser(&log)
+  parser.TimeFunction = testJanDate
+  err := parser.Parse()
+  if nil != err {
+    c.Fatal(err)
+  }
+  var msg message.IMessage = parser.Message()
+  c.Assert(time.Date(2016, 1, 1, 20, 7, 15, 0, time.Now().Location()), Equals, msg.TimeStamp())
+}
