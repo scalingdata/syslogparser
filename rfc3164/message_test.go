@@ -37,7 +37,7 @@ func (s *Rfc3164MessageTestSuite) TestMessageFromRfc3164(c *C) {
   c.Assert(string(sampleRfc3164Log), Equals, string(*msg.RawMessage()))
   c.Assert("webtest-mark", Equals, msg.Hostname())
   c.Assert("This is a log.info() message", Equals, msg.Message())
-  c.Assert(true, Equals, time.Unix(1402085235, 0).Equal(msg.TimeStamp()))
+  c.Assert(true, Equals, time.Unix(1433621235, 0).Equal(msg.TimeStamp()))
   c.Assert("simlogging", Equals, msg.Process())
   c.Assert(message.Info, Equals, msg.Severity())
   c.Assert(message.Ftp, Equals, msg.Facility())

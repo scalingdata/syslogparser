@@ -162,6 +162,11 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
     sub = p.buff[p.cursor : tsFmtLen+p.cursor]
     ts, err = time.ParseInLocation(tsFmt, string(sub), time.Local)
     if err == nil {
+      /* Set Year on the Timestamp before converting to UTC so that time zone and
+         DST settings (which are year dependent) can be properly assessed in the
+         conversion. */
+      fixTimestampIfNeeded(&ts)
+
       ts = ts.UTC()
       found = true
       break
@@ -179,8 +184,6 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
 
     return ts, syslogparser.ErrTimestampUnknownFormat
   }
-
-  fixTimestampIfNeeded(&ts)
 
   p.cursor += tsFmtLen
 
