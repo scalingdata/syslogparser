@@ -55,6 +55,10 @@ func (p *Parser) Parse() error {
   }
 
   p.cursor++
+ 
+  if p.cursor >= p.l {
+    return syslogparser.ErrEOL
+  }
 
   msg, err := p.parsemessage()
   if err != syslogparser.ErrEOL {
