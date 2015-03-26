@@ -156,6 +156,10 @@ func (p *Parser) parseHeader() (header, error) {
   }
   hdr.version = ver
   p.cursor++
+  if p.cursor >= p.l {
+    return hdr, syslogparser.ErrEOL
+  }
+
 
   ts, err := p.parseTimestamp()
   if err != nil {
@@ -165,6 +169,10 @@ func (p *Parser) parseHeader() (header, error) {
   hdr.timestamp = ts
   p.cursor++
 
+  if p.cursor >= p.l {
+    return hdr, syslogparser.ErrEOL
+  }
+
   host, err := p.parseHostname()
   if err != nil {
     return hdr, err
@@ -172,6 +180,9 @@ func (p *Parser) parseHeader() (header, error) {
 
   hdr.hostname = host
   p.cursor++
+  if p.cursor >= p.l {
+    return hdr, syslogparser.ErrEOL
+  }
 
   appName, err := p.parseAppName()
   if err != nil {
@@ -180,6 +191,9 @@ func (p *Parser) parseHeader() (header, error) {
 
   hdr.appName = appName
   p.cursor++
+  if p.cursor >= p.l {
+    return hdr, syslogparser.ErrEOL
+  }
 
   procId, err := p.parseProcId()
   if err != nil {
@@ -188,6 +202,9 @@ func (p *Parser) parseHeader() (header, error) {
 
   hdr.procId = procId
   p.cursor++
+  if p.cursor >= p.l {
+    return hdr, syslogparser.ErrEOL
+  }
 
   msgId, err := p.parseMsgId()
   if err != nil {
@@ -196,6 +213,9 @@ func (p *Parser) parseHeader() (header, error) {
 
   hdr.msgId = msgId
   p.cursor++
+  if p.cursor >= p.l {
+    return hdr, syslogparser.ErrEOL
+  }
 
   return hdr, nil
 }
