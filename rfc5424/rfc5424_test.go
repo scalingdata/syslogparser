@@ -117,21 +117,22 @@ func (s *Rfc5424TestSuite) TestParseHeader_Valid(c *C) {
   procId := "123"
   msgId := "ID47"
   nilValue := string(NILVALUE)
-  headerFmt := "<165>1 %s %s %s %s %s "
+  msgBody := "Message Body"
+  headerFmt := "<165>1 %s %s %s %s %s %s"
 
   fixtures := []string{
     // HEADER complete
-    fmt.Sprintf(headerFmt, tsString, hostname, appName, procId, msgId),
+    fmt.Sprintf(headerFmt, tsString, hostname, appName, procId, msgId, msgBody),
     // TIMESTAMP as NILVALUE
-    fmt.Sprintf(headerFmt, nilValue, hostname, appName, procId, msgId),
+    fmt.Sprintf(headerFmt, nilValue, hostname, appName, procId, msgId, msgBody),
     // HOSTNAME as NILVALUE
-    fmt.Sprintf(headerFmt, tsString, nilValue, appName, procId, msgId),
+    fmt.Sprintf(headerFmt, tsString, nilValue, appName, procId, msgId, msgBody),
     // APP-NAME as NILVALUE
-    fmt.Sprintf(headerFmt, tsString, hostname, nilValue, procId, msgId),
+    fmt.Sprintf(headerFmt, tsString, hostname, nilValue, procId, msgId, msgBody),
     // PROCID as NILVALUE
-    fmt.Sprintf(headerFmt, tsString, hostname, appName, nilValue, msgId),
+    fmt.Sprintf(headerFmt, tsString, hostname, appName, nilValue, msgId, msgBody),
     // MSGID as NILVALUE
-    fmt.Sprintf(headerFmt, tsString, hostname, appName, procId, nilValue),
+    fmt.Sprintf(headerFmt, tsString, hostname, appName, procId, nilValue, msgBody),
   }
 
   pri := syslogparser.Priority{
@@ -209,7 +210,7 @@ func (s *Rfc5424TestSuite) TestParseHeader_Valid(c *C) {
     obtained, err := p.parseHeader()
     c.Assert(err, IsNil)
     c.Assert(obtained, Equals, expected[i])
-    c.Assert(p.cursor, Equals, len(f))
+    c.Assert(p.cursor, Equals, len(f)-len(msgBody))
   }
 }
 
