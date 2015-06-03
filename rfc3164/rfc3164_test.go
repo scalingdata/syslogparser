@@ -90,6 +90,29 @@ func (s *Rfc3164TestSuite) TestParser_DashUnderScoreTag(c *C) {
   c.Assert(obtained, DeepEquals, expected)
 }
 
+func (s *Rfc3164TestSuite) TestParser_SlashTag(c *C) {
+  buff := []byte("<22>Mar 18 08:08:02 cdh5-1 postfix/cleanup[12878]: 5502720FAE: message-id=<1294520615.27.1426666082320.JavaMail.cloudera-scm@localhost>")
+
+  p := NewParser(&buff)
+  p.TimeFunction = octTestDate
+  err := p.Parse()
+  c.Assert(err, IsNil)
+
+  obtained := p.Dump()
+  expected := syslogparser.LogParts{
+    "timestamp": time.Date(2016, time.March, 18, 8, 8, 2, 0, time.UTC),
+    "hostname":  "cdh5-1",
+    "tag":       "postfix/cleanup",
+    "content":   "5502720FAE: message-id=<1294520615.27.1426666082320.JavaMail.cloudera-scm@localhost>",
+    "priority":  22,
+    "facility":  2,
+    "severity":  6,
+    "proc_id": "12878",
+  }
+
+  c.Assert(obtained, DeepEquals, expected)
+}
+
 func (s *Rfc3164TestSuite) TestParseHeader_Valid(c *C) {
   buff := []byte("Oct 11 22:14:15 mymachine ")
   hdr := header{

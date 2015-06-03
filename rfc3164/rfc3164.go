@@ -212,15 +212,12 @@ func (p *Parser) parseTag() (string, error) {
   i := 0;
   for i < (p.l - p.cursor) {
     curChar := p.buff[p.cursor + i]
-    if (curChar >= '0' && curChar <= '9') ||
-      (curChar >= 'a' && curChar <= 'z') ||
-      (curChar >= 'A' && curChar <= 'Z') ||
-      /* Allow non-compliant tags with "-" and "_" */
-       curChar == '-' || curChar == '_' ||
-      /* Note that the spec says to stop on *any* non-alphanumeric, but the original
-         author of this lib specifically allowed '.' chars so we're retaining this
-         divergance from the specification until we find a reason not to. */
-      (curChar == '.') { 
+    // The RFC specifies a TAG field with up to 32 alphanumeric chars,
+    // but in the field it has been seen to contain the entire executable name
+    // containing '/', '.', '_', and '-' characters. 
+    // A better heuristic (drawing from the RFC) is that the TAG is terminated by
+    // a space, a left bracket (for the PID), or a colon.  
+    if curChar != ' ' && curChar != '[' && curChar != ':' {
       i++
     } else {
       tag := p.buff[p.cursor:p.cursor+i]
