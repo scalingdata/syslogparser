@@ -215,13 +215,9 @@ func (p *Parser) parseTag() (string, error) {
     if (curChar >= '0' && curChar <= '9') ||
       (curChar >= 'a' && curChar <= 'z') ||
       (curChar >= 'A' && curChar <= 'Z') ||
-      /* Allow non-compliant tags with "-", "_", "/" */
+      /* Allow non-compliant tags with "-", "_", "/", "." */
        curChar == '-' || curChar == '_' ||
-       curChar == '/'
-      /* Note that the spec says to stop on *any* non-alphanumeric, but the original
-         author of this lib specifically allowed '.' chars so we're retaining this
-         divergance from the specification until we find a reason not to. */
-      (curChar == '.') { 
+       curChar == '/' || curChar == '.' {
       i++
     } else {
       tag := p.buff[p.cursor:p.cursor+i]
