@@ -156,7 +156,9 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
   var sub []byte
 
   tsFmts := []string{
+    "Jan 02 15:04:05 2006",
     "Jan 02 15:04:05",
+    "Jan  2 15:04:05 2006",
     "Jan  2 15:04:05",
   }
 
@@ -169,16 +171,24 @@ func (p *Parser) parseTimestamp() (time.Time, error) {
     }
 
     sub = p.buff[p.cursor : tsFmtLen+p.cursor]
-    ts, err = time.ParseInLocation(tsFmt, string(sub), time.Local)
-    if err == nil {
-      /* Set Year on the Timestamp before converting to UTC so that time zone and
-         DST settings (which are year dependent) can be properly assessed in the
-         conversion. */
-      p.fixTimestampIfNeeded(&ts)
 
-      ts = ts.UTC()
-      found = true
-      break
+    // Only test the date pattern if the next character is a space (or the end of the message)
+    // This prevents us picking up the first 4 numbers of a hostname as a year
+    if p.cursor+tsFmtLen == p.l || p.buff[p.cursor + tsFmtLen] == ' ' {
+      ts, err = time.ParseInLocation(tsFmt, string(sub), time.Local)
+      if err == nil {
+        // Only use a pattern with a year for "reasonable" years 
+        if (ts.Year() > 0 && ts.Year() < 2000) || ts.Year() > 2100 {
+	  continue
+        }
+        /* Set Year on the Timestamp before converting to UTC so that time zone and
+           DST settings (which are year dependent) can be properly assessed in the
+           conversion. */
+        p.fixTimestampIfNeeded(&ts)
+        ts = ts.UTC()
+        found = true
+        break
+      }
     }
   }
 

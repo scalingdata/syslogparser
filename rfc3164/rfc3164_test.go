@@ -113,6 +113,127 @@ func (s *Rfc3164TestSuite) TestParser_SlashTag(c *C) {
   c.Assert(obtained, DeepEquals, expected)
 }
 
+func (s *Rfc3164TestSuite) TestParse_TimestampWithYear(c *C) {
+  // Test the date pattern where there's a year and a two-digit day
+  buff := []byte("<22>Jan 24 14:03:00 2015 HOSTNAME SomeProgram: LogMessage")
+
+  p := NewParser(&buff)
+  p.TimeFunction = octTestDate
+  err := p.Parse()
+  c.Assert(err, IsNil)
+
+  obtained := p.Dump()
+  expected := syslogparser.LogParts{
+    "timestamp": time.Date(2015, time.January, 24, 14, 3, 0, 0, time.UTC),
+    "hostname":  "HOSTNAME",
+    "tag":       "SomeProgram",
+    "content":   "LogMessage",
+    "priority":  22,
+    "facility":  2,
+    "severity":  6,
+    "proc_id": "",
+  }
+
+  c.Assert(obtained, DeepEquals, expected)
+}
+
+func (s *Rfc3164TestSuite) TestParse_TimestampWithYearOneDigit(c *C) {
+  // Test the date pattern where there's a year and a one-digit day
+  buff := []byte("<22>Jan  4 14:03:00 2015 HOSTNAME SomeProgram: LogMessage")
+
+  p := NewParser(&buff)
+  p.TimeFunction = octTestDate
+  err := p.Parse()
+  c.Assert(err, IsNil)
+
+  obtained := p.Dump()
+  expected := syslogparser.LogParts{
+    "timestamp": time.Date(2015, time.January, 4, 14, 3, 0, 0, time.UTC),
+    "hostname":  "HOSTNAME",
+    "tag":       "SomeProgram",
+    "content":   "LogMessage",
+    "priority":  22,
+    "facility":  2,
+    "severity":  6,
+    "proc_id": "",
+  }
+
+  c.Assert(obtained, DeepEquals, expected)
+}
+
+func (s *Rfc3164TestSuite) TestParse_TimestampWithTooSmallYear(c *C) {
+  // Test the date pattern where there's a year and a one-digit day,
+  // but the year is too early to be valid so we treat it as a hostname
+  buff := []byte("<22>Jan  4 14:03:00 1999 SomeProgram: LogMessage")
+
+  p := NewParser(&buff)
+  p.TimeFunction = octTestDate
+  err := p.Parse()
+  c.Assert(err, IsNil)
+
+  obtained := p.Dump()
+  expected := syslogparser.LogParts{
+    "timestamp": time.Date(2016, time.January, 4, 14, 3, 0, 0, time.UTC),
+    "hostname":  "1999",
+    "tag":       "SomeProgram",
+    "content":   "LogMessage",
+    "priority":  22,
+    "facility":  2,
+    "severity":  6,
+    "proc_id": "",
+  }
+
+  c.Assert(obtained, DeepEquals, expected)
+}
+
+func (s *Rfc3164TestSuite) TestParse_TimestampWithTooLargeYear(c *C) {
+  // Test the date pattern where there's a year and a one-digit day,
+  // but the year is too late to be valid so we treat it as a hostname
+  buff := []byte("<22>Jan  4 14:03:00 2112 SomeProgram: LogMessage")
+
+  p := NewParser(&buff)
+  p.TimeFunction = octTestDate
+  err := p.Parse()
+  c.Assert(err, IsNil)
+
+  obtained := p.Dump()
+  expected := syslogparser.LogParts{
+    "timestamp": time.Date(2016, time.January, 4, 14, 3, 0, 0, time.UTC),
+    "hostname":  "2112",
+    "tag":       "SomeProgram",
+    "content":   "LogMessage",
+    "priority":  22,
+    "facility":  2,
+    "severity":  6,
+    "proc_id": "",
+  }
+
+  c.Assert(obtained, DeepEquals, expected)
+}
+
+func (s *Rfc3164TestSuite) TestParse_HostWithFourDigitPrefix(c *C) {
+  buff := []byte("<22>Jan  4 14:03:00 1000-HOSTNAME SomeProgram: LogMessage")
+
+  p := NewParser(&buff)
+  p.TimeFunction = octTestDate
+  err := p.Parse()
+  c.Assert(err, IsNil)
+
+  obtained := p.Dump()
+  expected := syslogparser.LogParts{
+    "timestamp": time.Date(2016, time.January, 4, 14, 3, 0, 0, time.UTC),
+    "hostname":  "1000-HOSTNAME",
+    "tag":       "SomeProgram",
+    "content":   "LogMessage",
+    "priority":  22,
+    "facility":  2,
+    "severity":  6,
+    "proc_id": "",
+  }
+
+  c.Assert(obtained, DeepEquals, expected)
+}
+
 func (s *Rfc3164TestSuite) TestParseHeader_Valid(c *C) {
   buff := []byte("Oct 11 22:14:15 mymachine ")
   hdr := header{
